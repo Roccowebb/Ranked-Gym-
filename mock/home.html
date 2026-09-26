@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Ranked Gym: Home mock</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --surface: #171b22;
+    --surface-2: #1f2530;
+    --line: #2a313d;
+    --text: #eef1f5;
+    --muted: #8b94a3;
+    --accent: #5b8cff;
+    --accent-text: #ffffff;
+    --good: #3fbf7f;
+    --warn: #e2b53e;
+    --bronze: #c07a45;
+    --silver: #b8c2cc;
+    --gold: #e2b53e;
+    --platinum: #3fc1b0;
+    --diamond: #6f8cff;
+    --champion: #d0527a;
+    --inactive: #5a6270;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f4f7;
+    --surface: #ffffff;
+    --surface-2: #eceef2;
+    --line: #dde1e7;
+    --text: #151a22;
+    --muted: #5e6776;
+    --accent: #2f63e0;
+    --silver: #8b97a4;
+    --gold: #c9971c;
+    --platinum: #1f9e8e;
+    --inactive: #a3aab5;
+    --warn: #946a00;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: calc(var(--safe-top) + 12px) 16px calc(var(--safe-bottom) + 160px);
+  }
+  .topbar { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+  .topbar h1 { font-size: 17px; font-weight: 600; margin: 0; color: var(--muted); letter-spacing: .02em; }
+  .icon-btn {
+    min-width: 44px; min-height: 44px; border-radius: 22px; border: 0;
+    background: var(--surface); color: var(--text); font-size: 18px;
+  }
+  .card { background: var(--surface); border-radius: 18px; padding: 16px; margin-top: 12px; }
+
+  /* Overall rank */
+  .overall { display: flex; gap: 16px; align-items: center; }
+  .overall .badge svg { width: 104px; height: 118px; display: block; }
+  .overall .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+  .overall .rank { font-size: 34px; font-weight: 700; line-height: 1.05; margin: 2px 0 6px; }
+  .overall .sub { color: var(--muted); font-size: 14px; }
+  .overall .sub strong { color: var(--text); font-weight: 600; }
+  .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .bar > span { display: block; height: 100%; border-radius: 4px; }
+  .overall .bar { margin: 8px 0 6px; }
+
+  /* Week and streak */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { background: var(--surface); border-radius: 18px; padding: 14px 16px; }
+  .stat .label { color: var(--muted); font-size: 13px; }
+  .stat .value { font-size: 28px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat .value small { font-size: 16px; font-weight: 500; color: var(--muted); }
+  .dots { display: flex; gap: 6px; margin-top: 8px; }
+  .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line); }
+  .dots i.on { background: var(--good); border-color: var(--good); }
+  .stat .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+  /* Backup reminder */
+  .reminder { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: transparent; }
+  .reminder p { margin: 0; flex: 1; font-size: 14px; color: var(--muted); }
+  .reminder p strong { color: var(--text); font-weight: 600; }
+  .btn-small {
+    min-height: 44px; padding: 0 14px; border-radius: 12px; border: 0;
+    background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 15px;
+  }
+
+  /* Lifts */
+  .section-title { margin: 22px 4px 0; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .lifts { padding: 4px 0; }
+  .lift {
+    display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center;
+    padding: 12px 16px; min-height: 72px; border-top: 1px solid var(--line);
+  }
+  .lift:first-child { border-top: 0; }
+  .lift .badge svg { width: 44px; height: 50px; display: block; }
+  .lift .name { font-weight: 600; font-size: 17px; }
+  .lift .meta { font-size: 13px; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .lift .bar { margin-top: 6px; height: 6px; }
+  .lift .tier { font-size: 15px; font-weight: 600; text-align: right; }
+  .lift .chev { color: var(--muted); font-size: 20px; margin-left: 4px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: 1px; }
+  .pill.ready { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+  .pill.inactive { background: var(--surface-2); color: var(--muted); }
+  .lift.is-inactive .name, .lift.is-inactive .tier { color: var(--muted); }
+
+  /* Bottom action and tabs */
+  .dock {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line);
+    padding: 12px 16px calc(var(--safe-bottom) + 4px);
+  }
+  .dock-inner { max-width: 480px; margin: 0 auto; }
+  .start {
+    width: 100%; min-height: 56px; border: 0; border-radius: 16px;
+    background: var(--accent); color: var(--accent-text);
+    font-size: 19px; font-weight: 700; letter-spacing: .01em;
+  }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 8px; }
+  .tab {
+    min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    color: var(--muted); font-size: 11px; text-decoration: none;
+  }
+  .tab svg { width: 24px; height: 24px; }
+  .tab.active { color: var(--accent); }
+
+  .mock-note { text-align: center; color: var(--muted); font-size: 12px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>RANKED GYM</h1>
+    <button class="icon-btn" id="theme" aria-label="Switch theme">◐</button>
+  </div>
+
+  <section class="card overall" aria-label="Overall rank">
+    <div class="badge" data-tier="silver" data-div="I" data-size="lg"></div>
+    <div style="flex:1">
+      <div class="label">Overall rank</div>
+      <div class="rank">Silver I</div>
+      <div class="bar"><span style="width:64%;background:var(--silver)"></span></div>
+      <div class="sub">64% to Gold III</div>
+      <div class="sub" style="margin-top:4px">Weakest lift: <strong>Overhead press</strong></div>
+    </div>
+  </section>
+
+  <div class="stats" style="margin-top:12px">
+    <section class="stat" aria-label="Sessions this week">
+      <div class="label">This week</div>
+      <div class="value">2 <small>of 3</small></div>
+      <div class="dots"><i class="on"></i><i class="on"></i><i></i></div>
+    </section>
+    <section class="stat" aria-label="Streak">
+      <div class="label">Weekly streak</div>
+      <div class="value">3 <small>weeks</small></div>
+      <div class="note">x1.15 XP</div>
+    </section>
+  </div>
+
+  <section class="card reminder" aria-label="Backup reminder">
+    <p><strong>Your last backup was 16 days ago.</strong><br>Export a copy to keep your data safe.</p>
+    <button class="btn-small">Export</button>
+  </section>
+
+  <div class="section-title">Ranked lifts</div>
+  <section class="card lifts">
+    <div class="lift">
+      <div class="badge" data-tier="gold" data-div="I"></div>
+      <div>
+        <div class="name">Squat</div>
+        <div class="bar"><span style="width:62%;background:var(--gold)"></span></div>
+        <div class="meta">496 / 800 XP</div>
+      </div>
+      <div class="tier">Gold I<span class="chev">›</span></div>
+    </div>
+    <div class="lift">
+      <div class="badge" data-tier="silver" data-div="I"></div>
+      <div>
+        <div class="name">Bench press <span class="pill ready">Test ready</span></div>
+        <div class="bar"><span style="width:100%;background:var(--silver)"></span></div>
+        <div class="meta">600 / 600 XP · 96% of Gold test</div>
+      </div>
+      <div class="tier">Silver I<span class="chev">›</span></div>
+    </div>
+    <div class="lift">
+      <div class="badge" data-tier="platinum" data-div="III"></div>
+      <div>
+        <div class="name">Deadlift</div>
+        <div class="bar"><span style="width:30%;background:var(--platinum)"></span></div>
+        <div class="meta">300 / 1,000 XP</div>
+      </div>
+      <div class="tier">Platinum III<span class="chev">›</span></div>
+    </div>
+    <div class="lift">
+      <div class="badge" data-tier="silver" data-div="II"></div>
+      <div>
+        <div class="name">Overhead press</div>
+        <div class="bar"><span style="width:40%;background:var(--silver)"></span></div>
+        <div class="meta">240 / 600 XP</div>
+      </div>
+      <div class="tier">Silver II<span class="chev">›</span></div>
+    </div>
+    <div class="lift is-inactive">
+      <div class="badge" data-tier="gold" data-div="III" data-inactive="1"></div>
+      <div>
+        <div class="name">Pull-up <span class="pill inactive">Inactive</span></div>
+        <div class="bar"><span style="width:10%;background:var(--inactive)"></span></div>
+        <div class="meta">Last trained 23 days ago</div>
+      </div>
+      <div class="tier">Gold III<span class="chev">›</span></div>
+    </div>
+  </section>
+
+  <p class="mock-note">Static mock with sample data. Nothing here is saved.</p>
+</div>
+
+<nav class="dock" aria-label="Main">
+  <div class="dock-inner">
+    <button class="start">Start workout</button>
+    <div class="tabs">
+      <a class="tab active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+      <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Train</a>
+      <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg>Progress</a>
+      <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg>Tests</a>
+      <a class="tab" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</a>
+    </div>
+  </div>
+</nav>
+
+<script>
+  // Tier badge: a shield in the tier colour with the division numeral.
+  const shield = "M50 4 L92 20 V58 C92 84 74 100 50 110 C26 100 8 84 8 58 V20 Z";
+  document.querySelectorAll(".badge").forEach((el, i) => {
+    const tier = el.dataset.tier;
+    const col = el.dataset.inactive ? "var(--inactive)" : `var(--${tier})`;
+    const id = "g" + i;
+    el.innerHTML = `
+      <svg viewBox="0 0 100 114" role="img" aria-label="${tier} ${el.dataset.div}">
+        <defs>
+          <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+            <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#000" stop-opacity=".25"/>
+          </linearGradient>
+        </defs>
+        <path d="${shield}" fill="${col}"/>
+        <path d="${shield}" fill="url(#${id})"/>
+        <path d="M50 16 L81 28 V58 C81 78 68 91 50 99 C32 91 19 78 19 58 V28 Z" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="3"/>
+        <text x="50" y="72" text-anchor="middle" font-size="34" font-weight="800" fill="#fff"
+              font-family="-apple-system, BlinkMacSystemFont, sans-serif" style="paint-order:stroke" stroke="rgba(0,0,0,.25)" stroke-width="2">${el.dataset.div}</text>
+      </svg>`;
+  });
+
+  document.getElementById("theme").addEventListener("click", () => {
+    const root = document.documentElement;
+    root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+  });
+  if (location.hash === "#light") document.documentElement.dataset.theme = "light";
+</script>
+</body>
+</html>
