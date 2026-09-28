@@ -110,40 +110,46 @@ export function qualMetric(ex, pb) {
   return { kg: ex.type === 'bodyweight' ? pb.qualAdded : pb.qualE1rm, reps: pb.maxReps || 0 };
 }
 
-export function passes(ex, tier, pb, scale = 1) {
+// For muscle ranks: best estimated 1RM from any working set of up to 10 reps.
+export function strengthMetric(ex, pb) {
+  if (!pb) return { kg: 0, reps: 0 };
+  return { kg: pb.e1rm || 0, reps: pb.maxReps || 0 };
+}
+
+export function passes(ex, tier, pb, scale = 1, metric = qualMetric) {
   const b = benchFor(ex, tier);
   if (!b) return false;
-  const m = qualMetric(ex, pb);
+  const m = metric(ex, pb);
   if (b.reps > 0 && m.reps >= b.reps) return true;
   if (b.kg > 0 && m.kg >= b.kg * scale - 1e-9) return true;
   return false;
 }
 
 // Progress towards a tier's benchmark, 0 to 1.
-export function benchProgress(ex, tier, pb, scale = 1) {
+export function benchProgress(ex, tier, pb, scale = 1, metric = qualMetric) {
   const b = benchFor(ex, tier);
   if (!b) return null;
-  const m = qualMetric(ex, pb);
+  const m = metric(ex, pb);
   let p = 0;
   if (b.reps > 0) p = Math.max(p, m.reps / b.reps);
   if (b.kg > 0) p = Math.max(p, m.kg / (b.kg * scale));
   return Math.max(0, Math.min(1, p));
 }
 
-export function placementRank(ex, pb, scale = 1) {
+export function placementRank(ex, pb, scale = 1, metric = qualMetric) {
   let tier = 0;
-  for (let t = 1; t <= 5; t++) if (passes(ex, t, pb, scale)) tier = t; else break;
+  for (let t = 1; t <= 5; t++) if (passes(ex, t, pb, scale, metric)) tier = t; else break;
   if (tier === 5) return { tier: 5, div: 0 };
   const next = benchFor(ex, tier + 1);
   if (!next) return { tier, div: 0 };
-  const m = qualMetric(ex, pb);
+  const m = metric(ex, pb);
   const cur = tier > 0 ? benchFor(ex, tier) : null;
   let between;
   if (next.kg > 0 && m.kg > 0) {
     const lo = cur && cur.kg > 0 ? cur.kg * scale : 0;
     between = (m.kg - lo) / (next.kg * scale - lo);
   } else {
-    between = benchProgress(ex, tier + 1, pb, scale) || 0;
+    between = benchProgress(ex, tier + 1, pb, scale, metric) || 0;
   }
   const div = between < 1 / 3 ? 0 : between < 2 / 3 ? 1 : 2;
   return { tier, div };
@@ -417,6 +423,8 @@ export function compute(data, now = new Date()) {
       testProgress: l.tier < 5 ? benchProgress(e, l.tier + 1, pbs[e.id], scale) : null,
     };
   });
+  const muscles = muscleRanks(exercises, pbs, scale, inactiveDays, now);
+
   const scores = liftStatus.map(l => l.score);
   const oScore = overallScore(scores);
   const weakest = liftStatus.length ? liftStatus.reduce((a, b) => (b.score < a.score ? b : a)) : null;
@@ -429,6 +437,7 @@ export function compute(data, now = new Date()) {
     sessions,
     events,
     pbs,
+    muscles,
     week: { key: nowWeek, count: weekCount, target, hit: weekCount >= target },
     streak,
     nextStreakMult: weekCount >= target ? 1 : streakMultFor(prevStreak),
@@ -437,4 +446,42 @@ export function compute(data, now = new Date()) {
     totalXP,
     sessionCount: workouts.filter(isSession).length,
   };
+}
+
+// ---- Muscle ranks ----
+// Each exercise gets a strength rank from its best set of up to 10 reps. A
+// muscle takes the best rank among exercises that train it: full rank where
+// it is the main muscle, one tier lower where it is a secondary muscle.
+export function exerciseStrength(ex, pb, scale = 1) {
+  if (!pb || !pb.sessions || !ex.benchmarks) return null;
+  const m = strengthMetric(ex, pb);
+  if (!(m.kg > 0) && !(m.reps > 0)) return null;
+  const r = placementRank(ex, pb, scale, strengthMetric);
+  const next = r.tier < 5 ? benchProgress(ex, r.tier + 1, pb, scale, strengthMetric) : null;
+  return { ...r, score: r.tier * 3 + r.div, next };
+}
+
+export function muscleRanks(exercises, pbs, scale, inactiveDays, now) {
+  const out = {};
+  for (const ex of exercises) {
+    if (!ex.muscles || !ex.muscles.length) continue;
+    const pb = pbs[ex.id];
+    const st = exerciseStrength(ex, pb, scale);
+    const last = pb && pb.history.length ? pb.history[pb.history.length - 1].date : null;
+    ex.muscles.forEach((key, i) => {
+      const m = out[key] || (out[key] = { key, score: -1, exerciseId: null, primary: false, lastTrained: null, exercises: [] });
+      m.exercises.push(ex.id);
+      if (last && (!m.lastTrained || last > m.lastTrained)) m.lastTrained = last;
+      if (!st) return;
+      const score = i === 0 ? st.score : Math.max(0, st.score - 3);
+      if (score > m.score) { m.score = score; m.exerciseId = ex.id; m.primary = i === 0; }
+    });
+  }
+  for (const m of Object.values(out)) {
+    m.trained = m.score >= 0;
+    if (m.trained) { m.tier = Math.floor(m.score / 3); m.div = m.score % 3; }
+    m.daysSince = m.lastTrained ? daysBetween(m.lastTrained, now) : null;
+    m.inactive = m.daysSince != null && m.daysSince >= inactiveDays;
+  }
+  return out;
 }

@@ -3,6 +3,9 @@ import { S, save, exById, visibleExercises, uid, toDisp, fromDisp, plateStep, un
 import { esc, icon, fmtDuration, openSheet, closeSheet, toast } from '../ui.js';
 import { go, render as rerender } from '../app.js';
 import { haptic } from '../haptics.js';
+import { MUSCLE_BY_KEY, GROUPS, EQUIP_NAMES } from '../library.js';
+
+let pickGroup = 'All';
 
 let justDone = null; // { ei, si } of the set just ticked, for the pop animation
 
@@ -253,32 +256,45 @@ export function pickExercise(onPick) {
   const all = visibleExercises();
   const sheet = openSheet(`<div class="grab"></div>
     <div class="sheet-head"><h2>Add exercise</h2><button class="icon-btn plain" data-close aria-label="Close">${icon('close')}</button></div>
-    <div class="search"><input class="input" type="search" placeholder="Search or create" autocomplete="off" id="ex-q"></div>
+    <div class="search"><input class="input" type="search" placeholder="Search or create" autocomplete="off" id="ex-q">
+      <div class="chips" id="ex-chips" style="margin-top:8px">${['All', ...GROUPS].map(g => `<button class="chip ${g === pickGroup ? 'on' : ''}" data-group="${g}">${g}</button>`).join('')}</div></div>
     <div id="ex-list"></div>`, { cls: 'tall' });
   const list = sheet.querySelector('#ex-list');
   const q = sheet.querySelector('#ex-q');
   const draw = () => {
     const term = q.value.trim().toLowerCase();
-    const match = all.filter(e => !term || e.name.toLowerCase().includes(term));
-    const recent = term ? [] : recentIds.map(id => all.find(e => e.id === id)).filter(Boolean);
+    const compact = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const words = term.split(/[^a-z0-9]+/).filter(Boolean);
+    const matches = e => { const n = compact(e.name); return words.every(w => n.includes(w)); };
+    const inGroup = e => pickGroup === 'All' || (e.muscles && e.muscles[0] && MUSCLE_BY_KEY[e.muscles[0]]?.group === pickGroup);
+    const match = all.filter(e => (!term || matches(e)) && inGroup(e));
+    const recent = term || pickGroup !== 'All' ? [] : recentIds.map(id => all.find(e => e.id === id)).filter(Boolean);
     const rest = match.filter(e => !recent.includes(e)).sort((a, b) => (b.ranked - a.ranked) || a.name.localeCompare(b.name));
     const row = e => `<button class="row" data-pick="${esc(e.id)}"><div class="grow"><div class="title">${esc(e.name)}</div>
-      <div class="sub">${e.ranked ? 'Ranked lift' : 'Accessory'}${e.type === 'bodyweight' ? ' · bodyweight' : ''}</div></div>${icon('plus')}</button>`;
+      <div class="sub">${[e.ranked ? 'Ranked lift' : '', e.muscles && e.muscles[0] ? MUSCLE_BY_KEY[e.muscles[0]]?.name : '', e.equip ? EQUIP_NAMES[e.equip] : (e.type === 'bodyweight' ? 'Bodyweight' : '')].filter(Boolean).join(' · ')}</div></div>${icon('plus')}</button>`;
     const exact = all.some(e => e.name.toLowerCase() === term);
     list.innerHTML = (term && !exact ? `<div class="card" style="margin:8px 0">
         <div class="title" style="font-weight:600">Create "${esc(q.value.trim())}"</div>
         <label class="row" style="padding:8px 0;border:0;min-height:48px"><span class="grow">Bodyweight exercise (log added weight)</span><span class="switch"><input type="checkbox" id="new-bw"><i></i></span></label>
         <button class="btn primary block" data-create>Create and add</button></div>` : '') +
       (recent.length ? `<div class="section-title" style="margin-top:8px">Recent</div>${recent.map(row).join('')}` : '') +
-      (rest.length ? `<div class="section-title" style="margin-top:12px">${term ? 'Matches' : 'All exercises'}</div>${rest.map(row).join('')}` : '');
+      (rest.length ? `<div class="section-title" style="margin-top:12px">${term ? 'Matches' : pickGroup === 'All' ? 'All exercises' : pickGroup} (${rest.length})</div>${rest.map(row).join('')}` : (term ? '' : '<div class="empty">No exercises in this group.</div>'));
   };
   q.addEventListener('input', draw);
+  sheet.querySelector('#ex-chips').addEventListener('click', ev => {
+    const c = ev.target.closest('[data-group]');
+    if (!c) return;
+    pickGroup = c.dataset.group;
+    sheet.querySelectorAll('#ex-chips .chip').forEach(x => x.classList.toggle('on', x === c));
+    draw();
+  });
   list.addEventListener('click', async ev => {
     const p = ev.target.closest('[data-pick]');
     if (p) { closeSheet(); onPick(p.dataset.pick); return; }
     if (ev.target.closest('[data-create]')) {
       const name = q.value.trim();
-      const ex = { id: uid('ex'), name, type: sheet.querySelector('#new-bw').checked ? 'bodyweight' : 'weighted', ranked: false, rest: 90, archived: false, benchmarks: null };
+      const ex = { id: uid('ex'), name, type: sheet.querySelector('#new-bw').checked ? 'bodyweight' : 'weighted', ranked: false, rest: 90, archived: false, benchmarks: null,
+        muscles: pickGroup !== 'All' ? [Object.values(MUSCLE_BY_KEY).find(m => m.group === pickGroup).key] : [] };
       S.exercises.push(ex);
       await save('exercises');
       closeSheet();

@@ -13,8 +13,9 @@ import * as settings from './screens/settings.js';
 import * as exercise from './screens/exercise.js';
 import * as exedit from './screens/exedit.js';
 import * as onboarding from './screens/onboarding.js';
+import * as body from './screens/body.js';
 
-const routes = { home, train, workout, summary, template, progress, tests, settings, exercise, exedit, onboarding };
+const routes = { home, train, workout, summary, template, progress, tests, settings, exercise, exedit, onboarding, body };
 const TABS = [['home', 'Home'], ['train', 'Train'], ['progress', 'Progress'], ['tests', 'Tests'], ['settings', 'Settings']];
 
 let current = null;

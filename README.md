@@ -35,8 +35,9 @@ The file is called something like `ranked-gym-backup-2026-09-28.json`. The Home 
 * **Tiers**: Bronze, Silver, Gold, Platinum, Diamond, Champion, each with divisions III, II, I. XP moves you through divisions; to move up a tier you need a qualifying set (estimated 1RM from 1 to 5 reps) that meets the benchmark.
 * **Overall rank** leans towards your weakest ranked lift.
 * A ranked lift you have not trained for 21 days shows as **Inactive**. You never lose rank.
+* **Muscle ranks**: about 150 exercises are tagged with the muscles they work. Each muscle takes the rank of its strongest exercise, shown on a front and back body map (Home, or Progress → Muscle ranks).
 
-The default benchmarks are starting points, not official standards. Change them in **Settings → Ranked lifts** (per lift) or with the benchmark scale. Full details are in [`docs/design.md`](docs/design.md).
+The default benchmarks are for a 70 kg lifter and are starting points, not official standards. Change them in **Settings → Ranked lifts** (per lift) or with the benchmark scale. Full details are in [`docs/design.md`](docs/design.md).
 
 ## For developers
 

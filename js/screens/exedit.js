@@ -3,6 +3,7 @@ import { S, save, exById, toDisp, fromDisp, num, unit, rankedLifts } from '../st
 import { esc, icon, fmtDuration, toast } from '../ui.js';
 import { TIERS } from '../engine.js';
 import { DEFAULT_BENCHMARKS } from '../defaults.js';
+import { MUSCLES } from '../library.js';
 import { back, render as rerender } from '../app.js';
 
 export const full = true;
@@ -27,6 +28,11 @@ export function render([id]) {
     <div class="field"><span>Type</span>
       <div class="seg"><button class="${!bw ? 'on' : ''}" data-act="type" data-v="weighted">Weighted</button><button class="${bw ? 'on' : ''}" data-act="type" data-v="bodyweight">Bodyweight + added</button></div>
     </div>
+    <div class="field"><span>Muscles worked (tap in order; the first is the main muscle)</span>
+      <div class="chips" style="flex-wrap:wrap">${MUSCLES.map(m => {
+        const i = (ex.muscles || []).indexOf(m.key);
+        return `<button class="chip ${i >= 0 ? 'on' : ''}" data-act="muscle" data-k="${m.key}">${i === 0 ? 'Main: ' : ''}${m.name}</button>`;
+      }).join('')}</div></div>
     <section class="card flush">
       <label class="row" style="border:0"><div class="grow"><div class="title">Ranked lift</div><div class="sub">Has its own rank and rank tests</div></div>
         <span class="switch"><input type="checkbox" ${ex.ranked ? 'checked' : ''} data-change="ranked"><i></i></span></label>
@@ -34,11 +40,11 @@ export function render([id]) {
         <div class="stepper"><button class="icon-btn" data-act="rest" data-d="-15" aria-label="Shorter rest">${icon('minus')}</button><span class="val">${fmtDuration(ex.rest || 90)}</span><button class="icon-btn" data-act="rest" data-d="15" aria-label="Longer rest">${icon('plus')}</button></div></div>
     </section>
 
-    <div class="section-title">Rank test benchmarks</div>
+    <div class="section-title">${ex.ranked ? 'Rank test benchmarks' : 'Strength benchmarks (for muscle ranks)'}</div>
     <section class="card">
       <p class="muted small" style="margin:0 0 8px">${bw
         ? `Reps: bodyweight reps in one set. Added: added-weight estimated 1RM in ${unit()}. Either one passes. Leave blank to skip.`
-        : `Estimated 1RM in ${unit()} from a set of 1 to 5 reps.`} Starting points only; set them to suit you.</p>
+        : ex.ranked ? `Estimated 1RM in ${unit()} from a set of 1 to 5 reps.` : `Estimated 1RM in ${unit()} from your best set of up to 10 reps.`} Defaults are for a 70 kg lifter and are starting points only; set them to suit you.</p>
       <table class="t"><thead><tr><th>Promote to</th>${bw ? '<th>Reps</th>' : ''}<th>${bw ? 'Added' : 'e1RM'} (${unit()})</th></tr></thead><tbody>${rows}</tbody></table>
       ${hasDefault ? '<button class="btn sm ghost" style="margin-top:8px" data-act="restore">Restore default benchmarks</button>' : ''}
     </section>
@@ -53,6 +59,14 @@ export const actions = {
     const v = el.value.trim();
     if (!v) { toast('A name is needed.'); rerender(); return; }
     cur().name = v; await save('exercises');
+  },
+  muscle: async el => {
+    const ex = cur();
+    const list = ex.muscles ? [...ex.muscles] : [];
+    const i = list.indexOf(el.dataset.k);
+    if (i >= 0) list.splice(i, 1); else list.push(el.dataset.k);
+    ex.muscles = list;
+    await persist();
   },
   type: async el => { cur().type = el.dataset.v; await persist(); },
   ranked: async el => {

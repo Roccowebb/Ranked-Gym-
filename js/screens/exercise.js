@@ -4,7 +4,9 @@ import { esc, icon, badge, bar, tierColor, xpText, fmtDate } from '../ui.js';
 import { rankName } from '../engine.js';
 import { e1rmChart } from './progress.js';
 import { benchText, bestText } from './tests.js';
-import { benchFor, TIERS } from '../engine.js';
+import { benchFor, TIERS, exerciseStrength } from '../engine.js';
+import { MUSCLE_BY_KEY } from '../library.js';
+import { S } from '../state.js';
 
 export const full = true;
 
@@ -39,7 +41,19 @@ export function render([id]) {
       ${l.testProgress != null ? `<div style="margin-top:8px">${bar(l.testProgress, tierColor(l.tier + 1))}</div><div class="muted small" style="margin-top:6px">${Math.floor(l.testProgress * 100)}% of the benchmark</div>` : ''}
     </section>` : ''}`;
   } else if (!ex.ranked) {
-    rank = '<p class="muted small" style="margin:4px 4px 0">Accessory exercise: earns XP for your ranked lifts but has no rank of its own.</p>';
+    const st = exerciseStrength(ex, pb, S.settings.benchmarkScale || 1);
+    const next = st && st.tier < 5 ? benchFor(ex, st.tier + 1) : null;
+    rank = st ? `<section class="card overall">
+      ${badge(st.tier, st.div, { size: 64 })}
+      <div style="flex:1;min-width:0">
+        <div class="label">Strength rank</div>
+        <div class="rank" style="font-size:26px">${rankName(st.tier, st.div)}</div>
+        ${next ? `${bar(st.next || 0, tierColor(st.tier + 1))}<div class="sub">${Math.floor((st.next || 0) * 100)}% of ${TIERS[st.tier + 1]}: ${benchText(ex, next)}</div>` : '<div class="sub">Top tier</div>'}
+      </div></section>` : '';
+    rank += '<p class="muted small" style="margin:8px 4px 0">Accessory: earns XP for your ranked lifts and sets the rank of the muscles it trains. It has no XP bar or rank test of its own.</p>';
+  }
+  if (ex.muscles && ex.muscles.length) {
+    rank += `<p class="small" style="margin:8px 4px 0"><span class="muted">Muscles:</span> ${ex.muscles.map((k, i) => esc((MUSCLE_BY_KEY[k]?.name || k) + (i === 0 ? ' (main)' : ''))).join(', ')}</p>`;
   }
 
   let pbTable = '<p class="muted" style="margin:0">No sets logged yet.</p>';

@@ -5,6 +5,7 @@ import { go, render as rerender, applyTheme } from '../app.js';
 import { doExport, pickImport } from '../backup.js';
 import { pickExercise } from './workout.js';
 import { haptic } from '../haptics.js';
+import { MUSCLE_BY_KEY, GROUPS } from '../library.js';
 
 export function render() {
   const st = S.settings;
@@ -48,7 +49,12 @@ export function render() {
 
   <div class="section-title">Other exercises</div>
   <section class="card flush">
-    ${others.map(e => `<button class="row" data-act="edit" data-id="${esc(e.id)}"><div class="grow"><div class="title">${esc(e.name)}</div>${e.type === 'bodyweight' ? '<div class="sub">Bodyweight + added</div>' : ''}</div>${icon('chev')}</button>`).join('')}
+    ${[...GROUPS, 'Other'].map(g => {
+      const list = others.filter(e => (e.muscles && e.muscles[0] ? MUSCLE_BY_KEY[e.muscles[0]]?.group : 'Other') === g);
+      if (!list.length) return '';
+      return `<details class="grp"><summary class="row"><div class="grow"><div class="title">${g}</div></div><span class="muted small">${list.length}</span>${icon('down')}</summary>
+        ${list.map(e => `<button class="row" data-act="edit" data-id="${esc(e.id)}"><div class="grow"><div class="title" style="font-weight:500">${esc(e.name)}</div></div>${icon('chev')}</button>`).join('')}</details>`;
+    }).join('')}
     <div class="row"><button class="btn sm ghost" data-act="add-ex">${icon('plus')} Add exercise</button></div>
   </section>
 
@@ -126,7 +132,7 @@ export const actions = {
   'add-ex': async () => {
     const name = prompt('Exercise name');
     if (!name || !name.trim()) return;
-    const ex = { id: uid('ex'), name: name.trim(), type: 'weighted', ranked: false, rest: 90, archived: false, benchmarks: null };
+    const ex = { id: uid('ex'), name: name.trim(), type: 'weighted', ranked: false, rest: 90, archived: false, benchmarks: null, muscles: [] };
     S.exercises.push(ex);
     await save('exercises');
     go('exedit/' + encodeURIComponent(ex.id));

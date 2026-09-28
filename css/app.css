@@ -22,6 +22,7 @@
   --diamond: #6f8cff;
   --champion: #d0527a;
   --inactive: #5a6270;
+  --body-empty: #2a313d; --body-base: #222834;
   --hm0: #1f2530; --hm1: #1e3a78; --hm2: #2d56b8; --hm3: #4a7cf0; --hm4: #8fb0ff;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -32,7 +33,7 @@
   --bg: #f3f4f7; --surface: #ffffff; --surface-2: #eceef2; --surface-3: #dde1e7; --line: #dde1e7;
   --text: #151a22; --muted: #5a6371; --accent: #2f63e0; --accent-soft: rgba(47, 99, 224, .12);
   --warn: #946a00; --danger: #c63838; --good: #1f8a55;
-  --silver: #8b97a4; --gold: #c9971c; --platinum: #1f9e8e; --inactive: #a3aab5;
+  --silver: #8b97a4; --gold: #c9971c; --platinum: #1f9e8e; --inactive: #a3aab5; --body-empty: #d3d8e0; --body-base: #e3e7ed;
   --hm0: #e4e7ec; --hm1: #c3d3f7; --hm2: #8eadf0; --hm3: #4f7fe4; --hm4: #2549a8;
   color-scheme: light;
 }
@@ -41,7 +42,7 @@
     --bg: #f3f4f7; --surface: #ffffff; --surface-2: #eceef2; --surface-3: #dde1e7; --line: #dde1e7;
     --text: #151a22; --muted: #5a6371; --accent: #2f63e0; --accent-soft: rgba(47, 99, 224, .12);
     --warn: #946a00; --danger: #c63838; --good: #1f8a55;
-    --silver: #8b97a4; --gold: #c9971c; --platinum: #1f9e8e; --inactive: #a3aab5;
+    --silver: #8b97a4; --gold: #c9971c; --platinum: #1f9e8e; --inactive: #a3aab5; --body-empty: #d3d8e0; --body-base: #e3e7ed;
     --hm0: #e4e7ec; --hm1: #c3d3f7; --hm2: #8eadf0; --hm3: #4f7fe4; --hm4: #2549a8;
     color-scheme: light;
   }
@@ -416,3 +417,33 @@ table.t input.input { min-height: 44px; padding: 6px 8px; font-size: 16px; }
 .lift-row:active, .row:active { background: var(--surface-2); }
 .set-row.just .set-check { animation: pop .35s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes pop { 0% { transform: scale(.7); } 100% { transform: scale(1); } }
+
+/* ---- Body map ---- */
+.body-card { display: block; text-decoration: none; color: inherit; }
+.body-pair { display: flex; justify-content: center; gap: 8px; }
+.body-pair figure { margin: 0; text-align: center; flex: 1; max-width: 180px; }
+.body-pair figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.body-fig { display: block; margin: 0 auto; height: auto; max-width: 100%; overflow: visible; }
+.body-base { fill: var(--body-base); }
+.body-fig .mus { stroke: var(--surface); stroke-width: 1.2; stroke-linejoin: round; transition: opacity .15s, fill .3s; }
+.body-fig.tappable .mus { cursor: pointer; }
+.body-fig.tappable .mus:active { opacity: .7; }
+.body-fig .mus.inactive { fill-opacity: .32; stroke-dasharray: 2 2; stroke: var(--muted); }
+.body-fig .mus.champ { filter: drop-shadow(0 0 3px var(--champion)); }
+.home-body .body-pair { gap: 16px; }
+.body-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 14px; }
+.body-foot .ic { width: 18px; height: 18px; }
+.body-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: center; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.body-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.body-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.badge-empty { width: 30px; height: 34px; flex: none; border-radius: 8px; border: 2px dashed var(--line); }
+.badge-empty.sm { width: 26px; height: 30px; }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 8px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-weight: 600; font-size: 14px; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+details.grp > summary { list-style: none; cursor: pointer; }
+details.grp > summary::-webkit-details-marker { display: none; }
+details.grp[open] > summary .ic { transform: rotate(180deg); }
+details.grp > .row { padding-left: 28px; }
+.card.flush > details.grp:first-child > summary { border-top: 0; }

@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compute, e1rm, effortMult, weekKey, placementRank, overallScore, scoreToRank, DIV_XP } from '../js/engine.js';
+import { LIBRARY_BY_ID } from '../js/library.js';
 import { defaultExercises, defaultSettings } from '../js/defaults.js';
 
 const set = (weight, reps, extra = {}) => ({ weight, reps, done: true, warmup: false, ...extra });
@@ -89,7 +90,7 @@ test('division I full waits for a test; a qualifying set promotes and banks XP',
   d.settings.weeklyTarget = 7;
   const bronzeTotal = DIV_XP[0] * 3;
   let i = 0;
-  // Light squats until Bronze I is full (no qualifying set for Silver at 70 kg).
+  // Light squats until Bronze I is full (sets of 10 never qualify for a test).
   let r;
   do {
     d.workouts.push(wo('l' + i, new Date(2026, 0, 1 + i, 18).toISOString(), 8, [{ exerciseId: 'squat', sets: Array(10).fill(set(50, 10)) }]));
@@ -100,8 +101,8 @@ test('division I full waits for a test; a qualifying set promotes and banks XP',
   assert.equal(r.liftById.squat.tier, 0);
   assert.equal(r.liftById.squat.div, 2);
   assert.ok(i * 50 > 0 && bronzeTotal > 0);
-  // Log a qualifying single at 70 kg: promoted to Silver.
-  d.workouts.push(wo('q', new Date(2026, 0, 1 + i, 18).toISOString(), 8, [{ exerciseId: 'squat', sets: [set(70, 1)] }]));
+  // Log a qualifying single at 85 kg (Silver is 82.5 kg): promoted to Silver.
+  d.workouts.push(wo('q', new Date(2026, 0, 1 + i, 18).toISOString(), 8, [{ exerciseId: 'squat', sets: [set(85, 1)] }]));
   r = compute(d, new Date(2026, 0, 2 + i));
   assert.equal(r.liftById.squat.tier, 1);
   assert.equal(r.sessions.q.promotions.length, 1);
@@ -123,7 +124,7 @@ test('placement puts lifts into tiers and divisions by kg benchmarks', () => {
   assert.deepEqual(placementRank(dead, { qualE1rm: 180, maxReps: 0 }), { tier: 4, div: 0 });
   assert.deepEqual(placementRank(dead, { qualE1rm: 175, maxReps: 0 }), { tier: 3, div: 2 });
   const pull = exs.find(e => e.id === 'pullup');
-  assert.deepEqual(placementRank(pull, { qualAdded: 0, maxReps: 10 }), { tier: 2, div: 0 });
+  assert.deepEqual(placementRank(pull, { qualAdded: 0, maxReps: 10 }), { tier: 2, div: 2 });
 });
 
 test('pull-up rep test and added-weight e1RM', () => {
@@ -149,4 +150,26 @@ test('a ranked lift not trained for 21 days is inactive but keeps its rank', () 
   assert.equal(r1.liftById.ohp.inactive, false);
   assert.equal(r2.liftById.ohp.inactive, true);
   assert.equal(r2.liftById.ohp.xp, r1.liftById.ohp.xp);
+});
+
+test('70 kg benchmarks keep the agreed anchors', () => {
+  assert.equal(LIBRARY_BY_ID.bench.benchmarks[2].kg, 100); // Platinum
+  assert.equal(LIBRARY_BY_ID.dbbench.benchmarks[2].kg, 32); // Platinum
+  assert.equal(LIBRARY_BY_ID.deadlift.benchmarks[3].kg, 180); // Diamond
+});
+
+test('muscle ranks: main muscle takes the full rank, secondary muscles one tier lower', () => {
+  const d = base();
+  // Rope pushdown 45 kg x 8: e1RM 57 kg against 27.5 / 37.5 / 42.5 / 50 / 60 -> Diamond
+  d.workouts.push(wo('a', new Date(2026, 0, 1).toISOString(), 8, [
+    { exerciseId: 'ropepushdown', sets: [set(45, 8)] },
+    { exerciseId: 'bench', sets: [set(70, 5)] },
+  ]));
+  const r = compute(d, new Date(2026, 0, 2));
+  assert.equal(r.muscles.triceps.tier, 4);
+  assert.equal(r.muscles.triceps.exerciseId, 'ropepushdown');
+  // Bench 70 x 5: e1RM 81.7 -> Silver on chest; front delts (secondary) drop to Bronze
+  assert.equal(r.muscles.chest.tier, 1);
+  assert.equal(r.muscles.fdelt.tier, 0);
+  assert.equal(r.muscles.calves.trained, false);
 });

@@ -171,44 +171,54 @@ The overall rank has no test of its own; it follows the lifts.
 
 ## 4. Rank tests (default benchmarks)
 
-> **These are starting points, not official standards.** They are fixed weights, not bodyweight multiples (decided in Stage 1), tuned for a 70 kg lifter: 100 kg bench press and 32 kg dumbbells on dumbbell bench press are Platinum, and a 180 kg deadlift is Diamond. Change any of them in Settings, or use the single **benchmark scale** setting (default 100%) to make every weight benchmark easier or harder at once.
+> **These are starting points, not official standards.** Every exercise has fixed kg benchmarks for a **70 kg lifter**, loosely modelled on commonly published strength standards for 70 kg men. Your anchors from Stage 1 are kept: 100 kg bench press and 32 kg dumbbells on dumbbell bench press are Platinum, and a 180 kg deadlift is Diamond. Change any of them in Settings, or use the **benchmark scale** (default 100%) to make every weight benchmark easier or harder at once.
 
 ### 4.1 How a test is passed
 
 * A working set of **1 to 5 reps** whose e1RM (Epley) is at least the benchmark weight. A true single counts at its actual weight.
-* Sets of 6 or more reps are ignored for weight tests, because e1RM gets less reliable as reps go up.
-* The set can be from any date.
-* Bronze is the starting tier and has no test.
+* Sets of 6 or more reps are ignored for rank tests, because e1RM gets less reliable as reps go up.
+* The set can be from any date. Bronze is the starting tier and has no test.
 
-### 4.2 Weighted lifts: estimated 1RM in kg
+### 4.2 How the ladder is built
 
-To be promoted **into** the tier named at the top of the column:
+Each exercise has one **Gold** value (roughly an intermediate lifter's estimated 1RM at 70 kg). The other tiers follow a fixed ladder:
+
+| Tier | Weighted lifts (x Gold) | Bodyweight lifts: reps (x Gold reps) | Bodyweight lifts: added weight (x Gold added) |
+| --- | --- | --- | --- |
+| Silver | 0.72 | 0.45 | - |
+| Gold | 1.00 | 1.00 | 1.00 |
+| Platinum | 1.12 | 1.40 | 1.67 |
+| Diamond | 1.30 | 1.80 | 2.33 |
+| Champion | 1.60 | 2.40 | 3.33 |
+
+Values are rounded to 2.5 kg (5 kg above 100 kg), or 2 kg for dumbbells and kettlebells. Dumbbell values are per dumbbell. Machine and cable values vary a lot between gyms, so adjust those to your equipment.
+
+### 4.3 Default ranked lifts (kg, estimated 1RM)
 
 | Lift | Silver | Gold | Platinum | Diamond | Champion |
 | --- | --- | --- | --- | --- | --- |
-| Squat | 70 | 100 | 125 | 150 | 180 |
-| Bench press | 60 | 80 | 100 | 120 | 140 |
-| Deadlift | 100 | 130 | 155 | 180 | 210 |
-| Overhead press | 40 | 50 | 60 | 75 | 90 |
-| Dumbbell bench press (per dumbbell) | 20 | 26 | 32 | 40 | 50 |
+| Squat | 82.5 | 115 | 130 | 150 | 185 |
+| Bench press | 65 | 90 | 100 | 115 | 145 |
+| Deadlift | 100 | 140 | 155 | 180 | 220 |
+| Overhead press | 40 | 57.5 | 65 | 75 | 90 |
+| Pull-up | 5 reps | 10 reps or +15 kg | 14 reps or +25 kg | 18 reps or +35 kg | 24 reps or +50 kg |
+| Dumbbell bench press (per dumbbell, not ranked by default) | 20 | 28 | 32 | 38 | 46 |
 
-Dumbbell bench press is not a default ranked lift, but it ships with these benchmarks, so turning it into a ranked lift in Settings is one tap. Example: Gold on squat is an e1RM of 100 kg, for example 92.5 kg x 3 (92.5 x 1.1 = 101.75).
+For bodyweight lifts, added-weight e1RM = `e1RM(bodyweight + added) - bodyweight`, from a set of 1 to 5 reps. Rep targets accept a set of any rep count, and the benchmark scale does not change them. The full list of about 150 exercises and their Gold values is in `js/library.js`.
 
-### 4.3 Pull-up: reps, then added weight
+### 4.4 Custom exercises
 
-| Tier | Benchmark |
-| --- | --- |
-| Silver | 5 strict bodyweight reps in one set |
-| Gold | 10 strict bodyweight reps in one set, **or** added-weight e1RM of 15 kg |
-| Platinum | Added-weight e1RM of 25 kg |
-| Diamond | Added-weight e1RM of 35 kg |
-| Champion | Added-weight e1RM of 50 kg |
+A new exercise is either **weighted** or **bodyweight** and starts with empty benchmarks that you fill in. A ranked lift with no benchmark for the next tier cannot be promoted, and an exercise with no benchmarks does not rank any muscle.
 
-Added-weight e1RM = `e1RM(bodyweight + added) - bodyweight`, from a set of 1 to 5 reps. This is the one place bodyweight still matters, because it is part of the load. Rep-based tests accept a set of any rep count, since the reps are the test. The benchmark scale does not change rep targets.
+### 4.5 Muscle ranks and the body map
 
-### 4.4 Custom ranked lifts
+Every exercise is tagged with the muscles it works (the first is its main muscle). There are 18 muscle groups: chest, front, side and rear delts, traps, lats, upper back, lower back, biceps, triceps, forearms, abs, obliques, glutes, quads, hamstrings, adductors and calves.
 
-A new ranked lift you add is either **weighted** (kg benchmarks, like squat) or **bodyweight** (reps, then added weight, like pull-up). It starts with empty benchmarks that you fill in; until you do, it ranks through divisions but cannot be promoted beyond Bronze, and the Rank tests screen says so.
+* **Exercise strength rank:** the tier and division your best working set of **up to 10 reps** (e1RM) reaches against that exercise's benchmarks, placed the same way as onboarding placement. No XP is needed; this is a strength snapshot.
+* **Muscle rank:** the best strength rank among exercises that train the muscle. Where the muscle is a secondary muscle, the rank counts one tier lower (so a strong bench press lifts your chest fully but your front delts less).
+* A muscle not trained for 21 days shows as inactive (grey), and keeps its rank.
+* The body map shows the front and back of a figure with each muscle filled in its tier colour. Tap a muscle to see its rank, strongest exercise, progress to the next tier and every exercise that trains it.
+* Muscle ranks are separate from the ranked lifts' XP ranks and the overall rank.
 
 ---
 

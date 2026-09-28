@@ -1,7 +1,46 @@
 // App state: loaded from storage, saved per collection, derived data cached.
 import * as db from './db.js';
 import { compute, weekKey } from './engine.js';
-import { defaultExercises, defaultSettings, defaultTemplates } from './defaults.js';
+import { defaultExercises, defaultSettings, defaultTemplates, libraryExercise } from './defaults.js';
+import { LIBRARY } from './library.js';
+
+// v1 shipped these defaults. Exercises still on them get the new ones.
+const V1_BENCH = {
+  squat: [70, 100, 125, 150, 180], bench: [60, 80, 100, 120, 140], deadlift: [100, 130, 155, 180, 210],
+  ohp: [40, 50, 60, 75, 90], dbbench: [20, 26, 32, 40, 50],
+};
+const V1_NAMES = { curl: 'Bicep curl', calf: 'Calf raise' };
+
+function isV1Bench(ex) {
+  const b = ex.benchmarks;
+  if (!b) return true;
+  if (ex.id === 'pullup') return b[0]?.reps === 5 && b[1]?.kg === 15 && b[1]?.reps === 10 && b[2]?.kg === 25 && !b[2]?.reps && b[4]?.kg === 50;
+  const v1 = V1_BENCH[ex.id];
+  return !!v1 && b.length === 5 && b.every((x, i) => x && x.kg === v1[i] && !x.reps);
+}
+
+// Bring stored data up to the current data version. Never removes anything.
+export function migrate() {
+  const v = S.settings.dataVersion || 1;
+  if (v >= 2) return false;
+  const byId = new Map(S.exercises.map(e => [e.id, e]));
+  for (const l of LIBRARY) {
+    const ex = byId.get(l.id);
+    if (!ex) {
+      const fresh = libraryExercise(l);
+      fresh.ranked = false;
+      delete fresh.rankOrder;
+      S.exercises.push(fresh);
+      continue;
+    }
+    if (!ex.muscles) ex.muscles = [...l.muscles];
+    if (!ex.equip) ex.equip = l.equip;
+    if (isV1Bench(ex)) ex.benchmarks = structuredClone(l.benchmarks);
+    if (V1_NAMES[ex.id] && ex.name === V1_NAMES[ex.id]) ex.name = l.name;
+  }
+  S.settings.dataVersion = 2;
+  return true;
+}
 
 export const KEYS = ['settings', 'exercises', 'workouts', 'templates', 'bodyweight'];
 export const SCHEMA_VERSION = 1;
@@ -23,12 +62,14 @@ export async function load() {
   S.active = (await db.get('active')) || null;
   let fresh = false;
   if (!S.settings) { S.settings = defaultSettings(); fresh = true; }
-  S.settings = { ...defaultSettings(), ...S.settings };
+  const storedVersion = fresh ? 2 : (S.settings.dataVersion || 1);
+  S.settings = { ...defaultSettings(), ...S.settings, dataVersion: storedVersion };
   if (!Array.isArray(S.exercises) || !S.exercises.length) S.exercises = defaultExercises();
   if (!Array.isArray(S.templates)) S.templates = defaultTemplates();
   if (!Array.isArray(S.workouts)) S.workouts = [];
   if (!Array.isArray(S.bodyweight)) S.bodyweight = [];
   if (fresh) for (const k of KEYS) await db.set(k, S[k]);
+  else if (migrate()) await save('settings', 'exercises');
   invalidate();
 }
 
@@ -127,6 +168,8 @@ export async function importData(obj) {
   S.templates = d.templates || [];
   S.bodyweight = d.bodyweight || [];
   S.active = null;
+  if (!d.settings.dataVersion) S.settings.dataVersion = 1;
+  migrate();
   await save(...KEYS, 'active');
 }
 

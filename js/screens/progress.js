@@ -16,7 +16,7 @@ let range = pref('chart-range', 'all');
 export function render([sec]) {
   if (sec && SECTIONS.some(s => s[0] === sec)) section = sec;
   const body = { pbs, charts, ranks, bw, cal }[section]();
-  return `<div class="head"><h1>Progress</h1></div>
+  return `<div class="head"><h1>Progress</h1><button class="btn sm" data-act="go" data-to="body">Muscle ranks</button></div>
     <div class="seg" role="tablist">${SECTIONS.map(([k, l]) => `<button role="tab" class="${section === k ? 'on' : ''}" data-act="sec" data-k="${k}" aria-selected="${section === k}">${l}</button>`).join('')}</div>
     ${body}`;
 }

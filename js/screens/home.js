@@ -2,6 +2,8 @@ import { S, save, derived, usingFallback } from '../state.js';
 import { badge, bar, esc, tierColor, xpText, icon } from '../ui.js';
 import { rankName, TIERS, DIVS } from '../engine.js';
 import { backupDue, doExport } from '../backup.js';
+import { bodyFigure } from '../body.js';
+import { MUSCLES } from '../library.js';
 import { render as rerender } from '../app.js';
 
 export function render() {
@@ -82,8 +84,18 @@ export function render() {
       </section>
     </div>
     ${notices.join('')}
+    ${bodyCard(d)}
     ${lifts.length ? `<div class="section-title">Ranked lifts</div><section class="card flush">${rows}</section>` : ''}
   `;
+}
+
+function bodyCard(d) {
+  const ranked = MUSCLES.filter(m => d.muscles[m.key] && d.muscles[m.key].trained).length;
+  return `<div class="section-title">Muscle ranks</div>
+    <a class="card body-card home-body" href="#/body" data-act="go" data-to="body" aria-label="Open muscle ranks">
+      <div class="body-pair">${bodyFigure('front', d.muscles, { width: 120, interactive: false })}${bodyFigure('back', d.muscles, { width: 120, interactive: false })}</div>
+      <div class="body-foot"><span>${ranked} of ${MUSCLES.length} muscles ranked</span>${icon('chev')}</div>
+    </a>`;
 }
 
 export const actions = {
