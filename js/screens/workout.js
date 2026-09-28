@@ -2,6 +2,9 @@
 import { S, save, exById, visibleExercises, uid, toDisp, fromDisp, plateStep, unit, num, currentBodyweight } from '../state.js';
 import { esc, icon, fmtDuration, openSheet, closeSheet, toast } from '../ui.js';
 import { go, render as rerender } from '../app.js';
+import { haptic } from '../haptics.js';
+
+let justDone = null; // { ei, si } of the set just ticked, for the pop animation
 
 export const full = true;
 export const keepOnResume = true;
@@ -97,7 +100,8 @@ export function render() {
     const rows = e.sets.map((s, si) => {
       const label = s.warmup ? 'W' : String(++n);
       const sel = a.sel && a.sel.ei === ei && a.sel.si === si;
-      const cls = [s.done ? 'done' : 'todo', s.warmup ? 'warm' : '', sel ? 'sel' : ''].join(' ');
+      const just = justDone && justDone.ei === ei && justDone.si === si;
+      const cls = [s.done ? 'done' : 'todo', s.warmup ? 'warm' : '', sel ? 'sel' : '', just ? 'just' : ''].join(' ');
       return `<div class="set-row ${cls}">
         <button class="set-tag ${s.warmup ? 'w' : ''}" data-act="toggle-warm" data-ei="${ei}" data-si="${si}" aria-label="${s.warmup ? 'Warm-up set, tap to make a working set' : 'Working set, tap to mark as warm-up'}">${label}</button>
         <button class="set-main" data-act="select" data-ei="${ei}" data-si="${si}">
@@ -208,7 +212,7 @@ function beep() {
 }
 
 function restAlert() {
-  if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+  haptic('success');
   beep();
   const f = document.createElement('div');
   f.className = 'flash';
@@ -220,6 +224,8 @@ function startRest(ex) {
   const secs = (ex && ex.rest) || 90;
   S.active.rest = { endsAt: Date.now() + secs * 1000, alerted: false };
 }
+
+export function after() { justDone = null; }
 
 export function tick() {
   const a = S.active;
@@ -312,6 +318,7 @@ function openFinish() {
     const b = ev.target.closest('[data-rpe]');
     if (b) {
       rpe = Number(b.dataset.rpe);
+      haptic('light');
       sheet.querySelectorAll('[data-rpe]').forEach(x => x.classList.toggle('on', x === b));
       sheet.querySelector('#rpe-desc').textContent = RPE_TEXT[rpe];
     }
@@ -325,6 +332,7 @@ function openFinish() {
 
 async function finishWorkout(rpe, note) {
   const a = S.active;
+  haptic('success');
   const w = {
     id: a.id, date: a.startedAt, endedAt: new Date().toISOString(), rpe, note, bodyweight: currentBodyweight(),
     exercises: a.exercises.map(e => ({ exerciseId: e.exerciseId, sets: e.sets.filter(s => s.done).map(s => ({ weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, warmup: !!s.warmup, done: true })) }))
@@ -344,6 +352,8 @@ export const actions = {
     unlockAudio();
     const { e, s, ei, si } = setAt(el);
     s.done = !s.done;
+    justDone = s.done ? { ei, si } : null;
+    haptic(s.done ? 'medium' : 'light');
     if (s.done) { carryForward(e, si); startRest(exById(e.exerciseId)); selectNext(ei, si); }
     else S.active.sel = { ei, si };
     await persist();
@@ -354,6 +364,8 @@ export const actions = {
     if (!cur) return;
     const wasDone = cur.s.done;
     cur.s.done = true;
+    justDone = wasDone ? null : { ...S.active.sel };
+    haptic(wasDone ? 'light' : 'medium');
     if (!wasDone) {
       carryForward(cur.e, S.active.sel.si);
       startRest(cur.ex);

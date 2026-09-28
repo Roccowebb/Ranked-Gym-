@@ -58,6 +58,7 @@ export function render({ scrollTop = false } = {}) {
   current = { name, params, screen };
   const view = document.getElementById('view');
   view.innerHTML = screen.render(params);
+  if (changed) { view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter'); }
   document.body.classList.toggle('full', !!screen.full);
   document.body.classList.toggle('workout', name === 'workout');
   renderDock(name, screen);

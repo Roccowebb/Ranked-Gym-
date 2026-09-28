@@ -1,8 +1,8 @@
 // Progress: PBs, charts, rank history, bodyweight, calendar.
 import { S, save, derived, exById, w as fmtW, num, toDisp, fromDisp, unit } from '../state.js';
 import { esc, icon, fmtDate, badge, toast } from '../ui.js';
-import { lineChart, heatmap } from '../charts.js';
-import { rankName, scoreToRank, TIERS, DIVS, dayKey } from '../engine.js';
+import { lineChart, heatmap, weekBars } from '../charts.js';
+import { rankName, scoreToRank, TIERS, DIVS, dayKey, weekKey, addDays, isSession, targetForWeek } from '../engine.js';
 import { render as rerender } from '../app.js';
 
 const SECTIONS = [['pbs', 'PBs'], ['charts', 'Charts'], ['ranks', 'Ranks'], ['bw', 'Bodyweight'], ['cal', 'Calendar']];
@@ -50,7 +50,7 @@ export function e1rmChart(exId, rng = 'all') {
   const cutoff = { '3m': 91, '1y': 365 }[rng];
   if (cutoff) pts = pts.filter(p => p.t >= Date.now() - cutoff * 86400000);
   const bw = ex && ex.type === 'bodyweight';
-  return lineChart(pts, { yFormat: v => `${bw && v > 0 ? '+' : ''}${num(v, 0)}`, empty: 'No sets in this range yet.' });
+  return lineChart(pts, { yFormat: v => `${bw && v > 0 ? '+' : ''}${num(v, 0)}`, empty: 'No sets in this range yet.', best: true });
 }
 
 function charts() {
@@ -100,7 +100,15 @@ function bw() {
 function cal() {
   const d = derived();
   const sessions = S.workouts.filter(w => !w.placement);
-  return `<section class="card"><h2>Last 26 weeks</h2>${heatmap(d.dayCounts)}</section>
+  const counts = new Map();
+  for (const w of sessions) if (isSession(w)) { const k = weekKey(w.date); counts.set(k, (counts.get(k) || 0) + 1); }
+  const thisWeek = weekKey(new Date());
+  const weeks = Array.from({ length: 12 }, (_, i) => {
+    const key = addDays(thisWeek, -7 * (11 - i));
+    return { key, count: counts.get(key) || 0, target: targetForWeek(S.settings, key) };
+  });
+  return `<section class="card"><h2>Sessions per week</h2>${weekBars(weeks)}</section>
+    <section class="card"><h2>Last 26 weeks</h2>${heatmap(d.dayCounts)}</section>
     <div class="stats">
       <section class="stat"><div class="label">Sessions logged</div><div class="value">${d.sessionCount}</div></section>
       <section class="stat"><div class="label">Total XP</div><div class="value">${Math.round(d.totalXP).toLocaleString('en-GB')}</div></section>

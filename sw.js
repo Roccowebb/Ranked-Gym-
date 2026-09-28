@@ -1,6 +1,6 @@
 // Service worker: precaches every app file so the app works offline.
 // Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `ranked-gym-${VERSION}`;
 const FILES = [
   './',
@@ -10,9 +10,11 @@ const FILES = [
   'js/app.js',
   'js/backup.js',
   'js/charts.js',
+  'js/confetti.js',
   'js/db.js',
   'js/defaults.js',
   'js/engine.js',
+  'js/haptics.js',
   'js/state.js',
   'js/ui.js',
   'js/screens/exedit.js',

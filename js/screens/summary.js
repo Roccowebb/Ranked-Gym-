@@ -3,6 +3,10 @@ import { S, save, derived, exById, w as fmtW, num, toDisp, unit } from '../state
 import { esc, badge, bar, tierColor, icon, fmtDateLong, toast, xpText } from '../ui.js';
 import { rankName, DIV_XP, TIERS, benchFor } from '../engine.js';
 import { go, back } from '../app.js';
+import { haptic } from '../haptics.js';
+import { confetti, cssVar } from '../confetti.js';
+
+let promoQueue = [];
 
 export const full = true;
 
@@ -44,10 +48,11 @@ export function render([id, isNew]) {
     if (!ex || !b || !a) return '';
     const moved = b.tier !== a.tier || b.div !== a.div;
     const from = moved ? 0 : frac(b);
+    const pill = b.tier !== a.tier ? '<span class="pill ready">Promoted</span>' : moved ? '<span class="pill good">Division up</span>' : '';
     return `<div class="lift-row" style="grid-template-columns:44px 1fr auto">
       ${badge(a.tier, a.div, { size: 44 })}
       <div style="min-width:0">
-        <div class="name">${esc(ex.name)}</div>
+        <div class="name">${esc(ex.name)} ${pill}</div>
         <div class="bar thin"><span data-to="${(frac(a) * 100).toFixed(1)}" style="width:${(from * 100).toFixed(1)}%;background:${tierColor(a.tier)}"></span></div>
         <div class="meta">${moved ? `${rankName(b.tier, b.div)} to ${rankName(a.tier, a.div)}` : rankName(a.tier, a.div)} · ${xpText(a)}</div>
       </div>
@@ -64,7 +69,7 @@ export function render([id, isNew]) {
   return `${head}
     <section class="card xp-hero">
       <div class="muted small">XP earned</div>
-      <div class="xp">+${Math.round(s.total).toLocaleString('en-GB')} <small>XP</small></div>
+      <div class="xp">+<span ${isNew ? `data-count="${Math.round(s.total)}"` : ''}>${Math.round(s.total).toLocaleString('en-GB')}</span> <small>XP</small></div>
       <div class="muted small">${weekLine}</div>
     </section>
     <section class="card">
@@ -79,7 +84,7 @@ export function render([id, isNew]) {
     ${lifts ? `<div class="section-title">Rank progress</div><section class="card flush">${lifts}</section>` : ''}
     ${details(w)}
     ${footer(w, isNew)}
-    ${isNew && s.promotions.length ? promoOverlay(s.promotions) : ''}`;
+    ${isNew && s.promotions.length ? '<div id="promo-slot"></div>' : ''}`;
 }
 
 function details(w) {
@@ -94,8 +99,7 @@ function footer(w, isNew) {
     ${isNew ? '<button class="btn primary block lg" style="margin-top:12px" data-act="done">Done</button>' : `<button class="btn danger block" style="margin-top:24px" data-act="delete" data-id="${esc(w.id)}">Delete workout</button>`}`;
 }
 
-function promoOverlay(promos) {
-  const p = promos[0];
+function promoOverlay(p, index, total) {
   const ex = exById(p.liftId);
   const b = benchFor(ex, p.to.tier);
   const pb = derived().pbs[p.liftId];
@@ -103,28 +107,69 @@ function promoOverlay(promos) {
   const bench = b ? (b.kg > 0 ? `${ex.type === 'bodyweight' ? 'added-weight ' : ''}e1RM of ${fmtW(b.kg * (S.settings.benchmarkScale || 1))}` : `${b.reps} reps`) : '';
   const col = tierColor(p.to.tier);
   return `<div class="promo" id="promo" role="dialog" aria-label="Promotion">
-    <div class="label">Promotion</div>
+    <div class="label">Promotion${total > 1 ? ` ${index + 1} of ${total}` : ''}</div>
     <div class="badges">
       <div class="glow" style="background:radial-gradient(circle, ${col} 0%, transparent 65%)"></div>
+      <div class="ring" style="border-color:${col}"></div>
       <div class="old">${badge(p.from.tier, p.from.div, { size: 180 })}</div>
-      <div class="new">${badge(p.to.tier, p.to.div, { size: 180 })}</div>
+      <div class="new">${badge(p.to.tier, p.to.div, { size: 180, shine: true })}</div>
     </div>
     <h2>${esc(ex.name)}: ${TIERS[p.to.tier]}</h2>
-    <p>You passed the ${TIERS[p.to.tier]} test${bench ? ` (${bench})` : ''}${qs ? ` with ${fmtW(qs.weight)} x ${qs.reps}` : ''}.${promos.length > 1 ? ` ${promos.length - 1} more ${promos.length === 2 ? 'promotion' : 'promotions'} this session.` : ''}</p>
-    <button class="btn primary lg" data-act="close-promo">Continue</button>
+    <p>You passed the ${TIERS[p.to.tier]} test${bench ? ` (${bench})` : ''}${qs ? ` with ${ex.type === 'bodyweight' ? 'BW+' : ''}${fmtW(qs.weight)} x ${qs.reps}` : ''}.</p>
+    <button class="btn primary lg" data-act="close-promo">${index + 1 < total ? 'Next' : 'Continue'}</button>
   </div>`;
+}
+
+function showPromo(index) {
+  const slot = document.getElementById('promo-slot');
+  if (!slot) return;
+  if (index >= promoQueue.length) { slot.innerHTML = ''; return; }
+  const p = promoQueue[index];
+  slot.innerHTML = promoOverlay(p, index, promoQueue.length);
+  slot.dataset.index = index;
+  const tierKey = ['--bronze', '--silver', '--gold', '--platinum', '--diamond', '--champion'][p.to.tier];
+  setTimeout(() => {
+    if (!document.getElementById('promo')) return;
+    haptic('promotion');
+    confetti([cssVar(tierKey), cssVar(tierKey), '#ffffff', cssVar('--accent')]);
+  }, 1150);
+}
+
+function countUp(el) {
+  const target = Number(el.dataset.count);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !target) return;
+  const start = performance.now(), dur = 900;
+  const step = now => {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - (1 - t) ** 3;
+    el.textContent = Math.round(target * eased).toLocaleString('en-GB');
+    if (t < 1) requestAnimationFrame(step);
+  };
+  el.textContent = '0';
+  requestAnimationFrame(step);
 }
 
 export function after(root) {
   requestAnimationFrame(() => requestAnimationFrame(() => {
     root.querySelectorAll('.bar span[data-to]').forEach(s => { s.style.width = s.dataset.to + '%'; });
   }));
-  if (root.querySelector('#promo') && navigator.vibrate) navigator.vibrate([30, 60, 30, 60, 120]);
+  const counter = root.querySelector('[data-count]');
+  if (counter) countUp(counter);
+  if (root.querySelector('#promo-slot')) {
+    const id = location.hash.split('/')[2];
+    promoQueue = derived().sessions[id]?.promotions || [];
+    showPromo(0);
+  } else if (root.querySelector('.pill.good')) {
+    setTimeout(() => haptic('success'), 500);
+  }
 }
 
 export const actions = {
   done: () => go('home', { replace: true }),
-  'close-promo': () => document.getElementById('promo')?.remove(),
+  'close-promo': () => {
+    const slot = document.getElementById('promo-slot');
+    showPromo(Number(slot?.dataset.index || 0) + 1);
+  },
   'save-tpl': async () => {
     const id = location.hash.split('/')[2];
     const w = S.workouts.find(x => x.id === id);

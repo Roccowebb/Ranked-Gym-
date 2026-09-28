@@ -76,6 +76,7 @@ export function defaultSettings() {
     lastBackupAt: null,
     backupSnoozeUntil: null,
     onboarded: false,
+    haptics: true,
     createdAt: new Date().toISOString(),
   };
 }

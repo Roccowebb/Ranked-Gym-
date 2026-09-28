@@ -9,7 +9,7 @@ let badgeSeq = 0;
 const SHIELD = 'M50 4 L92 20 V58 C92 84 74 100 50 110 C26 100 8 84 8 58 V20 Z';
 const INNER = 'M50 16 L81 28 V58 C81 78 68 91 50 99 C32 91 19 78 19 58 V28 Z';
 
-export function badge(tier, div, { size = 44, inactive = false, cls = '' } = {}) {
+export function badge(tier, div, { size = 44, inactive = false, cls = '', shine = false } = {}) {
   const id = 'bg' + ++badgeSeq;
   const col = inactive ? 'var(--inactive)' : `var(--${TIER_KEYS[tier]})`;
   const h = Math.round(size * 1.14);
@@ -19,6 +19,7 @@ export function badge(tier, div, { size = 44, inactive = false, cls = '' } = {})
     </linearGradient></defs>
     <path d="${SHIELD}" fill="${col}"/><path d="${SHIELD}" fill="url(#${id})"/>
     <path d="${INNER}" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="3"/>
+    ${shine ? `<clipPath id="${id}c"><path d="${SHIELD}"/></clipPath><g clip-path="url(#${id}c)"><rect class="shine" x="-60" y="-10" width="28" height="140" fill="#fff" fill-opacity=".55" transform="skewX(-20)"/></g>` : ''}
     ${tier === 5 ? '<path d="M34 40 L42 50 L50 36 L58 50 L66 40 L63 58 H37 Z" fill="#fff" fill-opacity=".9"/>' : ''}
     <text x="50" y="${tier === 5 ? 86 : 72}" text-anchor="middle" font-size="${tier === 5 ? 26 : 34}" font-weight="800" fill="#fff"
       font-family="-apple-system, BlinkMacSystemFont, sans-serif" style="paint-order:stroke" stroke="rgba(0,0,0,.25)" stroke-width="2">${DIVS[div]}</text>

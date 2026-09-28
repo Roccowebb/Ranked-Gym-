@@ -4,6 +4,7 @@ import { esc, icon, fmtDate, toast } from '../ui.js';
 import { go, render as rerender, applyTheme } from '../app.js';
 import { doExport, pickImport } from '../backup.js';
 import { pickExercise } from './workout.js';
+import { haptic } from '../haptics.js';
 
 export function render() {
   const st = S.settings;
@@ -54,6 +55,8 @@ export function render() {
   <div class="section-title">Appearance</div>
   <section class="card">
     <div class="seg">${[['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']].map(([k, l]) => `<button class="${st.theme === k ? 'on' : ''}" data-act="theme" data-v="${k}">${l}</button>`).join('')}</div>
+    <label class="row" style="padding:12px 0 0;border:0;min-height:48px"><div class="grow"><div class="title">Haptics</div><div class="sub">Vibration where supported. On iPhone this needs iOS 18 or later.</div></div>
+      <span class="switch"><input type="checkbox" ${st.haptics !== false ? 'checked' : ''} data-change="haptics"><i></i></span></label>
   </section>
 
   <div class="section-title">Backup</div>
@@ -128,6 +131,7 @@ export const actions = {
     await save('exercises');
     go('exedit/' + encodeURIComponent(ex.id));
   },
+  haptics: async el => { S.settings.haptics = el.checked; await save('settings'); if (el.checked) haptic('medium'); },
   theme: async el => { S.settings.theme = el.dataset.v; await save('settings'); applyTheme(); rerender(); },
   export: async () => { await doExport(); rerender(); },
   import: () => pickImport(() => { applyTheme(); go('home', { replace: true }); }),
