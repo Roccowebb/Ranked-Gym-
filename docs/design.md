@@ -1,8 +1,8 @@
 # Ranked Gym: design proposal (Stage 1)
 
-This document proposes the XP formula, the default rank test benchmarks and a rough layout of each screen. Nothing here is built yet apart from a static mock of the Home screen (`mock/home.html`). Every number below is a starting point, and all of them will be editable in Settings unless stated otherwise.
+This document sets out the XP formula, the default rank test benchmarks and the layout of each screen. Every number below is a starting point, and the benchmarks are editable in Settings.
 
-Items marked **Decision needed** are places where your brief could be read more than one way. I have picked a default for each; say if you want it changed.
+The Stage 1 decisions are recorded in section 11.
 
 ---
 
@@ -12,7 +12,7 @@ Items marked **Decision needed** are places where your brief could be read more 
 | --- | --- |
 | Working set | Any logged set not marked as a warm-up. Only working sets earn XP or count for PBs and rank tests. |
 | Load | Weight on the bar. For pull-ups (and any lift marked "bodyweight"), load = current bodyweight + added weight. |
-| Relative volume (RV) | `reps x load / bodyweight`, summed over working sets. Dividing by bodyweight means a lighter lifter is not at an XP disadvantage. |
+| Relative volume (RV) | `reps x load / bodyweight`, summed over working sets. Dividing by bodyweight means a lighter lifter is not at an XP disadvantage. Bodyweight is used for XP only; rank tests use fixed weights. |
 | e1RM | Estimated one-rep max, Epley: `weight x (1 + reps / 30)`. A single (1 rep) counts as its own weight. |
 | Week | Monday to Sunday, in the phone's local time. |
 
@@ -60,14 +60,12 @@ Capped at **+200 per session** so a first session on a new exercise (where every
 * `streakWeeks` = the number of consecutive hit weeks, ending with last week. The current week never breaks the streak while it is in progress, whatever day it is.
 * The streak only resets when a whole week ends below target.
 * Rest days never count against you. Training 3 times in a week with a target of 3 is a perfect week, however the days fall.
-* If you hit your target in the current week, that week already counts, so the multiplier for later sessions that week includes it.
+* The multiplier for a session uses the streak up to last week. The Home screen counts the current week in the streak as soon as its target is hit.
 
 **Training beyond the target** earns no extra streak bonus in two ways:
 
 1. Extra sessions do not add extra streak weeks; one week is one week.
 2. Sessions beyond your target in a week earn XP with `streakMult = 1.00`. They still earn base, volume, effort and PB XP.
-
-> **Decision needed:** point 2 is my reading of "earns no extra streak bonus". The alternative is that extra sessions keep the multiplier and only point 1 applies. I prefer point 2 because it quietly supports rest, but it is your call.
 
 **Changing the target** applies from the current week onwards. Past weeks keep the target that was set at the time.
 
@@ -98,12 +96,12 @@ volumeXP   = 40 x sqrt(49.88)        = 282.5
 base + vol = 50 + 282.5              = 332.5
 effort     (RPE 8)                   = 1.15   -> 382.4
 streakMult (3 weeks)                 = 1.15   -> 439.7
-pbBonus    (squat e1RM PB)           = +100
-totalXP                              = 540 (rounded)
+pbBonus    (squat: e1RM PB +100, 5-rep max PB +25, best set volume PB +25) = +150
+totalXP                              = 590 (rounded)
 ```
 
 Split: squat 37.6% + half of the row's 36.1% = 55.6%, bench 26.3% + 18.0% = 44.4%.
-Squat gets 0.556 x 440 + 100 = **345 XP**, bench gets 0.444 x 440 = **195 XP**.
+Squat gets 0.556 x 440 + 150 = **395 XP**, bench gets 0.444 x 440 = **195 XP**. This example is checked by an automated test (`tests/engine.test.mjs`).
 
 ---
 
@@ -137,7 +135,7 @@ At the example rate (a lift trained twice a week, roughly 200 to 350 XP a sessio
 * At **Champion I** the bar keeps filling for display ("Champion points"), with no further rank.
 * A promotion shows the promotion screen: the old badge, an animation to the new badge, and the benchmark you beat. (The animation itself is Stage 3 polish; v1 has a simple version.)
 
-> **Decision needed:** how old can a qualifying set be? My default is **the last 90 days**, so a lift you could do a year ago does not promote you today. The alternative is "any time".
+A qualifying set counts **whenever** it was logged (decided in Stage 1).
 
 ### 3.4 Inactive lifts (decay)
 
@@ -173,43 +171,44 @@ The overall rank has no test of its own; it follows the lifts.
 
 ## 4. Rank tests (default benchmarks)
 
-> **These are starting points, not official standards.** They are round numbers chosen to spread the tiers out sensibly for an adult who trains regularly. They are not age, sex or weight-class adjusted. Change any of them in Settings, or use the single **benchmark scale** setting (default 100%) to make every benchmark easier or harder at once.
+> **These are starting points, not official standards.** They are fixed weights, not bodyweight multiples (decided in Stage 1), tuned for a 70 kg lifter: 100 kg bench press and 32 kg dumbbells on dumbbell bench press are Platinum, and a 180 kg deadlift is Diamond. Change any of them in Settings, or use the single **benchmark scale** setting (default 100%) to make every weight benchmark easier or harder at once.
 
 ### 4.1 How a test is passed
 
-* A working set of **1 to 5 reps** whose e1RM (Epley) is at least `benchmark x current bodyweight`. A true single counts at its actual weight.
-* Sets of 6 or more reps are ignored for tests, because e1RM gets less reliable as reps go up.
-* The benchmark in kg uses your **current** bodyweight from Settings (or the latest bodyweight log entry).
+* A working set of **1 to 5 reps** whose e1RM (Epley) is at least the benchmark weight. A true single counts at its actual weight.
+* Sets of 6 or more reps are ignored for weight tests, because e1RM gets less reliable as reps go up.
+* The set can be from any date.
 * Bronze is the starting tier and has no test.
 
-### 4.2 Barbell lifts: e1RM as a multiple of bodyweight
+### 4.2 Weighted lifts: estimated 1RM in kg
 
 To be promoted **into** the tier named at the top of the column:
 
 | Lift | Silver | Gold | Platinum | Diamond | Champion |
 | --- | --- | --- | --- | --- | --- |
-| Squat | 1.00x | 1.50x | 1.75x | 2.00x | 2.50x |
-| Bench press | 0.75x | 1.00x | 1.25x | 1.50x | 1.75x |
-| Deadlift | 1.25x | 1.75x | 2.00x | 2.50x | 3.00x |
-| Overhead press | 0.50x | 0.65x | 0.80x | 1.00x | 1.20x |
+| Squat | 70 | 100 | 125 | 150 | 180 |
+| Bench press | 60 | 80 | 100 | 120 | 140 |
+| Deadlift | 100 | 130 | 155 | 180 | 210 |
+| Overhead press | 40 | 50 | 60 | 75 | 90 |
+| Dumbbell bench press (per dumbbell) | 20 | 26 | 32 | 40 | 50 |
 
-For an 80 kg lifter, Gold on squat is an e1RM of 120 kg, for example 110 kg x 3 (110 x 1.1 = 121).
+Dumbbell bench press is not a default ranked lift, but it ships with these benchmarks, so turning it into a ranked lift in Settings is one tap. Example: Gold on squat is an e1RM of 100 kg, for example 92.5 kg x 3 (92.5 x 1.1 = 101.75).
 
 ### 4.3 Pull-up: reps, then added weight
 
 | Tier | Benchmark |
 | --- | --- |
 | Silver | 5 strict bodyweight reps in one set |
-| Gold | 10 strict bodyweight reps in one set, **or** added-weight e1RM of 0.20x bodyweight |
-| Platinum | Added-weight e1RM of 0.35x bodyweight |
-| Diamond | Added-weight e1RM of 0.50x bodyweight |
-| Champion | Added-weight e1RM of 0.75x bodyweight |
+| Gold | 10 strict bodyweight reps in one set, **or** added-weight e1RM of 15 kg |
+| Platinum | Added-weight e1RM of 25 kg |
+| Diamond | Added-weight e1RM of 35 kg |
+| Champion | Added-weight e1RM of 50 kg |
 
-Added-weight e1RM = `e1RM(bodyweight + added) - bodyweight`, from a set of 1 to 5 reps. Rep-based tests (Silver, Gold) accept a bodyweight set of any rep count, since the reps are the test.
+Added-weight e1RM = `e1RM(bodyweight + added) - bodyweight`, from a set of 1 to 5 reps. This is the one place bodyweight still matters, because it is part of the load. Rep-based tests accept a set of any rep count, since the reps are the test. The benchmark scale does not change rep targets.
 
 ### 4.4 Custom ranked lifts
 
-A new ranked lift you add is either **weighted** (benchmarks as bodyweight multiples, like squat) or **bodyweight** (reps, then added weight, like pull-up). It starts with empty benchmarks that you fill in; until you do, it ranks through divisions but cannot be promoted beyond Bronze, and the Rank tests screen says so.
+A new ranked lift you add is either **weighted** (kg benchmarks, like squat) or **bodyweight** (reps, then added weight, like pull-up). It starts with empty benchmarks that you fill in; until you do, it ranks through divisions but cannot be promoted beyond Bronze, and the Rank tests screen says so.
 
 ---
 
@@ -217,7 +216,7 @@ A new ranked lift you add is either **weighted** (benchmarks as bodyweight multi
 
 Onboarding has three short steps, each skippable:
 
-1. **Bodyweight** (and kg or lb).
+1. **Bodyweight** (and kg or lb). Used for XP and pull-up loads.
 2. **Weekly session target** (1 to 7, default 3).
 3. **Placement (optional).** For each ranked lift, enter a recent best as weight x reps (or reps for pull-ups). Leave any blank.
 
@@ -331,14 +330,14 @@ One card per ranked lift:
 
 ```
 Squat                     Gold I -> Platinum
-Benchmark    1.75x BW = 140 kg e1RM
-Best so far  125 kg x 3 (e1RM 137.5 kg), 12 Sep
-[██████████████████░░]  98%
+Benchmark    125 kg e1RM
+Best so far  112.5 kg x 3 (e1RM 123.8 kg), 12 Sep
+[██████████████████░░]  99%
 Status       XP: test unlocks at Gold I full (496 / 800)
 ```
 
 * Percentage = best qualifying e1RM in the window / benchmark in kg, capped at 100%.
-* A small "what counts" note: 1 to 5 reps, working sets only, last 90 days.
+* A small "what counts" note: 1 to 5 reps, working sets only, any date.
 * A reminder that the benchmarks are editable starting points.
 
 ### 7.6 Settings
@@ -348,7 +347,7 @@ Status       XP: test unlocks at Gold I full (496 / 800)
 * Exercises: add, rename, delete, mark as bodyweight, default rest time.
 * Ranked lifts: add, remove, rename, reorder; choose weighted or bodyweight type.
 * Benchmarks: editable table per lift, benchmark scale, "Restore defaults".
-* Qualifying window (90 days) and inactive threshold (21 days).
+* Inactive threshold (21 days).
 * Theme: Dark (default), Light, or Match system.
 * Backup: Export backup, Import backup, date of last backup.
 * Reset: delete all data (two-step confirmation, suggests exporting first).
@@ -360,7 +359,7 @@ Status       XP: test unlocks at Gold I full (496 / 800)
 
 ### 8.1 Storage
 
-* **IndexedDB** as the main store, with object stores for `settings`, `exercises`, `workouts`, `templates`, `bodyweight`, `rankEvents`.
+* **IndexedDB** as the main store: one key-value store holding a record each for `settings`, `exercises`, `workouts`, `templates`, `bodyweight` and the workout in progress.
 * If IndexedDB is unavailable (for example some private browsing modes), fall back to `localStorage`, storing the same data as JSON. A small banner says data is in fallback storage.
 * The app asks the browser for persistent storage (`navigator.storage.persist()`) where supported, to reduce the chance of the phone clearing it.
 * Ranks, XP and PBs are **derived** by replaying the workout log in date order, rather than stored as their own source of truth. This keeps them consistent after an import, an edited workout or a changed benchmark. A cached result is kept for speed.
@@ -376,7 +375,7 @@ A single JSON file, for example `ranked-gym-backup-2026-09-26.json`:
   "app": "ranked-gym",
   "schemaVersion": 1,
   "exportedAt": "2026-09-26T18:30:00Z",
-  "data": { "settings": {}, "exercises": [], "workouts": [], "templates": [], "bodyweight": [], "rankEvents": [] }
+  "data": { "settings": {}, "exercises": [], "workouts": [], "templates": [], "bodyweight": [] }
 }
 ```
 
@@ -430,10 +429,10 @@ tests/engine.test.html  (runs the XP and rank maths in the browser)
 
 ---
 
-## 11. Summary of decisions for you
+## 11. Decisions (agreed after Stage 1)
 
-1. Sessions beyond the weekly target earn XP **without** the streak multiplier (section 2.3). Keep, or let them keep the multiplier?
-2. Qualifying sets must be from the **last 90 days** (section 3.3). Keep, or allow any time?
-3. The default benchmark numbers in section 4. Any you want changed before I build?
-4. Bottom tabs: Home, Train, Progress, Tests, Settings, with Templates inside Train (section 7). OK?
-5. iPhone does not support web vibration; the rest timer falls back to sound and a screen flash (section 7.2). OK?
+1. Sessions beyond the weekly target earn XP without the streak multiplier.
+2. Qualifying sets count whenever they were logged.
+3. Benchmarks are fixed kg weights, not bodyweight multiples (section 4).
+4. Bottom tabs: Home, Train, Progress, Tests, Settings, with Templates inside Train.
+5. The rest timer vibrates where supported and uses a sound and screen flash on iPhone.

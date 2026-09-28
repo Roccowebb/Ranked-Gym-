@@ -1,0 +1,9 @@
+{
+  "name": "ranked-gym",
+  "private": true,
+  "type": "module",
+  "description": "Offline lifting tracker with ranked-game progression. No build step: the files are served as they are.",
+  "scripts": {
+    "test": "node --test tests/engine.test.mjs"
+  }
+}
